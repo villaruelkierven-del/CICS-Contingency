@@ -103,7 +103,7 @@
     <h1>CICS Contingency Balance Viewer</h1>
     <label for="idNumber">Enter Employee ID Number:</label>
     <div class="input-group">
-        <input type="text" id="idNumber" placeholder="e.g., CL2018-264" maxlength="15">
+        <input type="text" id="idNumber" placeholder="e.g., CL2018-999" maxlength="15">
         <button onclick="lookupAndDraw()">Search</button>
     </div>
 </div>
@@ -113,7 +113,7 @@
 <script>
     // --- 1. DATA SOURCE (JSON) ---
     const employeeData = [
-        { "Name": "Aguilor, Ivy Joy Nardo", "IDNumber": "CL2018-999", "Balance": 0 },
+        { "Name": "Aguilor, Ivy Joy Nardo", "IDNumber": "CL2018-264", "Balance": 0 },
         { "Name": "Alojado, Carmelo Olavidez", "IDNumber": "2024-053", "Balance": 1200 },
         { "Name": "Borja, Doreena Joy Capistrano", "IDNumber": "2017-0280", "Balance": 1200 },
         { "Name": "Buiza, Vanessa Preclaro", "IDNumber": "UL2025-045", "Balance": 250 },
@@ -280,4 +280,5 @@
 </body>
 
 </html>
+
 
