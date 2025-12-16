@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CICS Faculty Contingency Fund Balance Viewer</title>
+    <style>
+        /* --- General Styling and Layout (Responsive) --- */
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 10px; /* Reduced padding for mobile */
+            background-color: #f4f4f9; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        
+        .controls { 
+            max-width: 650px; 
+            width: 95%; /* Scales down on small devices */
+            margin-bottom: 20px; 
+            background: #fff; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+        }
+
+        h1 { 
+            text-align: center; 
+            color: #333; 
+            margin-top: 0; 
+            font-size: 1.5em; /* Appropriate size for mobile headers */
+        }
+        
+        label { 
+            display: block; 
+            margin-top: 15px; 
+            font-weight: bold; 
+            color: #555; 
+        }
+        
+        /* Input and Button Grouping (Flexbox for responsiveness) */
+        .input-group {
+            display: flex; /* Arrange input and button horizontally */
+            gap: 5px; /* Space between input and button */
+            align-items: flex-end; /* Align items to the bottom */
+        }
+
+        /* Input field takes up available space */
+        input[type="text"] { 
+            flex-grow: 1; 
+            padding: 10px; 
+            margin-top: 5px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            box-sizing: border-box; 
+            width: auto; 
+        }
+        
+        /* Button has fixed width but is responsive within the flex container */
+        button { 
+            flex-shrink: 0; 
+            width: 100px; 
+            padding: 10px; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            margin-top: 5px;
+        }
+        
+        button:hover { 
+            background-color: #0056b3; 
+        }
+        
+        /* Canvas Styling (Scales visually via CSS) */
+        #dataCanvas { 
+            border: 1px solid #ccc; 
+            background-color: #fff; 
+            max-width: 650px; 
+            width: 95%; /* Scales with the screen */
+            height: 400px; /* Sets an initial height */
+            /* Note: The actual drawing resolution is set in JavaScript */
+        }
+
+        /* --- Media Query for very small screens (under 400px) --- */
+        @media (max-width: 400px) {
+            .input-group {
+                flex-direction: column; /* Stack input and button vertically */
+            }
+            input[type="text"], button {
+                width: 100%; /* Make both full width when stacked */
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="controls">
+    <h1>CICS Contingency Balance Viewer</h1>
+    <label for="idNumber">Enter Employee ID Number:</label>
+    <div class="input-group">
+        <input type="text" id="idNumber" placeholder="e.g., CL2018-264" maxlength="15">
+        <button onclick="lookupAndDraw()">Search</button>
+    </div>
+</div>
+
+<canvas id="dataCanvas" width="650" height="400"></canvas>
+
+<script>
+    // --- 1. DATA SOURCE (JSON) ---
+    const employeeData = [
+        { "Name": "Aguilor, Ivy Joy Nardo", "IDNumber": "CL2018-264", "Balance": 0 },
+        { "Name": "Alojado, Carmelo Olavidez", "IDNumber": "2024-053", "Balance": 1200 },
+        { "Name": "Borja, Doreena Joy Capistrano", "IDNumber": "2017-0280", "Balance": 1200 },
+        { "Name": "Buiza, Vanessa Preclaro", "IDNumber": "UL2025-045", "Balance": 250 },
+        { "Name": "Carpio, Melvin Monteagudo", "IDNumber": "CL2023-639", "Balance": 250 },
+        { "Name": "De Luna - Malinao, Eunice Gepes", "IDNumber": "2017-0266", "Balance": 0 },
+        { "Name": "De Mesa, Lynsey Miles Apas", "IDNumber": "UL2025-049", "Balance": 250 },
+        { "Name": "Estrella, Maria Jeanne Pilar", "IDNumber": "CL2024-022", "Balance": 0 },
+        { "Name": "Fellizar, Ivelyn Labosta", "IDNumber": "CL2024-074", "Balance": 0 },
+        { "Name": "Go, Villi Dane Montejo", "IDNumber": "2017-0299", "Balance": 1200 },
+        { "Name": "Imperio, Lorimer Lancion", "IDNumber": "2002-0119", "Balance": 1200 },
+        { "Name": "Jasmin, Kevin Hernandez", "IDNumber": "2022-0356", "Balance": 80 },
+        { "Name": "Landig, Raymart Mistiola", "IDNumber": "CL2023-672", "Balance": 0 },
+        { "Name": "Lauresta, Sherelyn Marte", "IDNumber": "SS2025-032", "Balance": 250 },
+        { "Name": "Laylay, Abegail Joy Limbo", "IDNumber": "CL2022-580", "Balance": 40 },
+        { "Name": "Logmao, Benedon Morong", "IDNumber": "2015-0205", "Balance": 700 },
+        { "Name": "Magcamit, Art Jervin Landig", "IDNumber": "2017-0267", "Balance": 100 },
+        { "Name": "Malinao, Ronjie Mar Leal", "IDNumber": "2006-0138", "Balance": 0 },
+        { "Name": "Mandalihan, Jayvi Malilay", "IDNumber": "CL2017-247", "Balance": 0 },
+        { "Name": "Mangui, Danrick Abling", "IDNumber": "SS2024-460", "Balance": 500 },
+        { "Name": "Mangui, Meynard Ornedo", "IDNumber": "CL2018-296", "Balance": 0 },
+        { "Name": "Marapia, Jeffrey Malajac", "IDNumber": "2017-0288", "Balance": 1200 },
+        { "Name": "Mercene, June Rhey", "IDNumber": "UL2025-036", "Balance": 0 },
+        { "Name": "Nabos, Christine May Luha", "IDNumber": "2017-0268", "Balance": 1100 },
+        { "Name": "Nabos, Julieta Quijano", "IDNumber": "2001-0115", "Balance": 1200 },
+        { "Name": "Nagutom, Janebhet Racelis", "IDNumber": "UL2025-046", "Balance": 0 },
+        { "Name": "Ollado, Mhelliscent Moldon", "IDNumber": "UL2025-047", "Balance": 0 },
+        { "Name": "Omiping, Kenneth Layron", "IDNumber": "CL2024-009", "Balance": 250 },
+        { "Name": "Ornedo, Jonex Mangui", "IDNumber": "CL2024-054", "Balance": 250 },
+        { "Name": "Ortega, Recalia Maghirang", "IDNumber": "CL2024-023", "Balance": 0 },
+        { "Name": "Pascual, Wilmer Mataya", "IDNumber": "2024-052", "Balance": 500 },
+        { "Name": "Perez, Ryan Clifford Larraquel", "IDNumber": "2017-0306", "Balance": 1200 },
+        { "Name": "Podaca, Jet Francis Quindoza", "IDNumber": "CL2024-027", "Balance": 250 },
+        { "Name": "Quindoza, Sofia Medinilla", "IDNumber": "UL2025-037", "Balance": 250 },
+        { "Name": "Rebistual, Christopher J.", "IDNumber": "2016-0216", "Balance": 1200 },
+        { "Name": "Rejano, Coney Marie Ogayre", "IDNumber": "CL2023-666", "Balance": 250 },
+        { "Name": "Relatorres, Joshua Malarayap", "IDNumber": "CL2023-631", "Balance": 250 },
+        { "Name": "Requiz, Aldrin Rosete", "IDNumber": "2024-008", "Balance": 1077 },
+        { "Name": "Romana, Clarissa Pawy", "IDNumber": "CL2024-043", "Balance": 0 },
+        { "Name": "Solina, Jamie Magpantay", "IDNumber": "UL2025-056", "Balance": 250 },
+        { "Name": "Solomon, Maria Nessa Mangi", "IDNumber": "2006-0145", "Balance": 1100 },
+        { "Name": "Suarez, Dhomalin Malalay", "IDNumber": "CL2024-072", "Balance": 0 },
+        { "Name": "Valenzuela, Mark Carlo Na", "IDNumber": "CL2024-073", "Balance": 250 },
+        { "Name": "Villaruel, Kierven Arellano", "IDNumber": "2017-0296", "Balance": 567 }
+    ];
+
+    const canvas = document.getElementById('dataCanvas');
+    const ctx = canvas.getContext('2d');
+    const defaultMessage = "Enter an ID number above and click 'Search' to view details.";
+
+    /**
+     * Resizes the canvas's drawing dimensions to match its CSS size.
+     */
+    function resizeCanvas() {
+        const style = window.getComputedStyle(canvas);
+        const cssWidth = parseFloat(style.getPropertyValue('width'));
+        const cssHeight = parseFloat(style.getPropertyValue('height')) || 400; 
+
+        canvas.width = cssWidth;
+        canvas.height = cssHeight;
+    }
+    
+    /**
+     * Draws the search results or status message onto the canvas.
+     */
+    function drawCanvas(content) {
+        resizeCanvas(); // Always resize before drawing
+
+        // Dynamic positioning based on canvas size
+        const xStart = canvas.width > 400 ? 30 : 15;
+        let yStart = 60; 
+        const maxTextWidth = canvas.width - (2 * xStart);
+        const labelOffset = canvas.width > 400 ? 150 : 100;
+        
+        // --- Setup Drawing Context ---
+        ctx.font = '20px Arial';
+        ctx.fillStyle = '#333';
+
+        // --- 1. Draw Header ---
+        ctx.fillText('Search Results', xStart, 30, maxTextWidth);
+        ctx.fillRect(xStart, 35, maxTextWidth, 1); 
+
+        // --- 2. Draw Content ---
+        if (typeof content === 'string') {
+            // Draw status or error message
+            ctx.font = '16px Arial';
+            ctx.fillStyle = content.startsWith('Error') ? 'red' : '#555';
+            ctx.fillText(content, xStart, yStart + 20, maxTextWidth);
+        } else if (content && content.Name) {
+            // Draw the found record details
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#007bff';
+            ctx.fillText('Details Found:', xStart, yStart, maxTextWidth);
+            yStart += 30;
+
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#333';
+            
+            // Format balance as currency
+            const formattedBalance = content.Balance.toLocaleString('en-US', {
+                style: 'currency',
+                currency: 'PHP' 
+            });
+
+            // Draw each detail line
+            const details = [
+                { label: "Name:", value: content.Name },
+                { label: "ID Number:", value: content.IDNumber },
+                { label: "Balance:", value: formattedBalance }
+            ];
+
+            details.forEach(detail => {
+                ctx.fillText(detail.label, xStart, yStart, labelOffset);
+                // Draw the value offset to the right
+                ctx.fillText(detail.value, xStart + labelOffset, yStart, maxTextWidth - labelOffset);
+                yStart += 30;
+            });
+            
+            // Draw a successful status message
+            ctx.fillStyle = 'green';
+            ctx.fillText('Search successful!', xStart, yStart + 20, maxTextWidth);
+        }
+    }
+
+    /**
+     * Finds the employee record and triggers the drawing function.
+     */
+    function lookupAndDraw() {
+        const inputID = document.getElementById('idNumber').value.trim().toUpperCase();
+
+        if (inputID === "") {
+            drawCanvas("Error: Please enter an ID number.");
+            return;
+        }
+
+        const employeeRecord = employeeData.find(
+            employee => employee.IDNumber.toUpperCase() === inputID
+        );
+
+        if (employeeRecord) {
+            drawCanvas(employeeRecord);
+        } else {
+            drawCanvas(`Error: ID Number ${inputID} not found.`);
+        }
+    }
+
+    // --- Event Listeners and Initial Load ---
+
+    // Initial draw when the page loads
+    drawCanvas(defaultMessage);
+
+    // Re-draw canvas on window resize to maintain responsiveness
+    window.addEventListener('resize', () => {
+        // Redraw based on current content (or default message if no search yet)
+        const currentID = document.getElementById('idNumber').value.trim().toUpperCase();
+        if (currentID) {
+            lookupAndDraw();
+        } else {
+            drawCanvas(defaultMessage);
+        }
+    });
+
+</script>
+
+</body>
+</html>
